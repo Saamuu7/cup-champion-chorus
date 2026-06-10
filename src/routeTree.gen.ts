@@ -10,12 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StartRouteImport } from './routes/start'
+import { Route as PorraRouteImport } from './routes/porra'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PorraSettingsRouteImport } from './routes/porra.settings'
+import { Route as PorraRankingRouteImport } from './routes/porra.ranking'
+import { Route as PorraHomeRouteImport } from './routes/porra.home'
 
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PorraRoute = PorraRouteImport.update({
+  id: '/porra',
+  path: '/porra',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -28,34 +37,84 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PorraSettingsRoute = PorraSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PorraRoute,
+} as any)
+const PorraRankingRoute = PorraRankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => PorraRoute,
+} as any)
+const PorraHomeRoute = PorraHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => PorraRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/porra': typeof PorraRouteWithChildren
   '/start': typeof StartRoute
+  '/porra/home': typeof PorraHomeRoute
+  '/porra/ranking': typeof PorraRankingRoute
+  '/porra/settings': typeof PorraSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/porra': typeof PorraRouteWithChildren
   '/start': typeof StartRoute
+  '/porra/home': typeof PorraHomeRoute
+  '/porra/ranking': typeof PorraRankingRoute
+  '/porra/settings': typeof PorraSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/porra': typeof PorraRouteWithChildren
   '/start': typeof StartRoute
+  '/porra/home': typeof PorraHomeRoute
+  '/porra/ranking': typeof PorraRankingRoute
+  '/porra/settings': typeof PorraSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/onboarding' | '/start'
+  fullPaths:
+    | '/'
+    | '/onboarding'
+    | '/porra'
+    | '/start'
+    | '/porra/home'
+    | '/porra/ranking'
+    | '/porra/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/onboarding' | '/start'
-  id: '__root__' | '/' | '/onboarding' | '/start'
+  to:
+    | '/'
+    | '/onboarding'
+    | '/porra'
+    | '/start'
+    | '/porra/home'
+    | '/porra/ranking'
+    | '/porra/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/onboarding'
+    | '/porra'
+    | '/start'
+    | '/porra/home'
+    | '/porra/ranking'
+    | '/porra/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
+  PorraRoute: typeof PorraRouteWithChildren
   StartRoute: typeof StartRoute
 }
 
@@ -66,6 +125,13 @@ declare module '@tanstack/react-router' {
       path: '/start'
       fullPath: '/start'
       preLoaderRoute: typeof StartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/porra': {
+      id: '/porra'
+      path: '/porra'
+      fullPath: '/porra'
+      preLoaderRoute: typeof PorraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -82,12 +148,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/porra/settings': {
+      id: '/porra/settings'
+      path: '/settings'
+      fullPath: '/porra/settings'
+      preLoaderRoute: typeof PorraSettingsRouteImport
+      parentRoute: typeof PorraRoute
+    }
+    '/porra/ranking': {
+      id: '/porra/ranking'
+      path: '/ranking'
+      fullPath: '/porra/ranking'
+      preLoaderRoute: typeof PorraRankingRouteImport
+      parentRoute: typeof PorraRoute
+    }
+    '/porra/home': {
+      id: '/porra/home'
+      path: '/home'
+      fullPath: '/porra/home'
+      preLoaderRoute: typeof PorraHomeRouteImport
+      parentRoute: typeof PorraRoute
+    }
   }
 }
+
+interface PorraRouteChildren {
+  PorraHomeRoute: typeof PorraHomeRoute
+  PorraRankingRoute: typeof PorraRankingRoute
+  PorraSettingsRoute: typeof PorraSettingsRoute
+}
+
+const PorraRouteChildren: PorraRouteChildren = {
+  PorraHomeRoute: PorraHomeRoute,
+  PorraRankingRoute: PorraRankingRoute,
+  PorraSettingsRoute: PorraSettingsRoute,
+}
+
+const PorraRouteWithChildren = PorraRoute._addFileChildren(PorraRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
+  PorraRoute: PorraRouteWithChildren,
   StartRoute: StartRoute,
 }
 export const routeTree = rootRouteImport
