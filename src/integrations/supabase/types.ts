@@ -14,7 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      matches: {
+        Row: {
+          away_flag: string
+          away_score: number | null
+          away_team: string
+          created_at: string
+          group_name: string | null
+          home_flag: string
+          home_score: number | null
+          home_team: string
+          id: string
+          match_date: string
+          stage: string
+        }
+        Insert: {
+          away_flag: string
+          away_score?: number | null
+          away_team: string
+          created_at?: string
+          group_name?: string | null
+          home_flag: string
+          home_score?: number | null
+          home_team: string
+          id?: string
+          match_date: string
+          stage?: string
+        }
+        Update: {
+          away_flag?: string
+          away_score?: number | null
+          away_team?: string
+          created_at?: string
+          group_name?: string | null
+          home_flag?: string
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          match_date?: string
+          stage?: string
+        }
+        Relationships: []
+      }
+      porra_members: {
+        Row: {
+          joined_at: string
+          porra_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          porra_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          porra_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "porra_members_porra_id_fkey"
+            columns: ["porra_id"]
+            isOneToOne: false
+            referencedRelation: "porras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      porras: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          away_score: number
+          created_at: string
+          home_score: number
+          id: string
+          match_id: string
+          porra_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          away_score: number
+          created_at?: string
+          home_score: number
+          id?: string
+          match_id: string
+          porra_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          away_score?: number
+          created_at?: string
+          home_score?: number
+          id?: string
+          match_id?: string
+          porra_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_porra_id_fkey"
+            columns: ["porra_id"]
+            isOneToOne: false
+            referencedRelation: "porras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          language: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          language?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          language?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
