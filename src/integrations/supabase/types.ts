@@ -186,7 +186,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _progress_round: {
+        Args: { p_count: number; p_from: string; p_to: string }
+        Returns: undefined
+      }
+      compute_standings: {
+        Args: never
+        Returns: {
+          flag: string
+          gd: number
+          gf: number
+          grp: string
+          pts: number
+          rk: number
+          team: string
+        }[]
+      }
+      generate_knockouts: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
