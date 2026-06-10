@@ -154,9 +154,19 @@ function MatchCard({
   const { user } = useAuth();
   const { porraId } = useActivePorra();
   const qc = useQueryClient();
-  const [h, setH] = useState<string>(myPrediction ? String(myPrediction.home_score) : "");
-  const [a, setA] = useState<string>(myPrediction ? String(myPrediction.away_score) : "");
+  const [h, setH] = useState<string>("");
+  const [a, setA] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  // Sync with loaded prediction
+  const predKey = myPrediction ? `${myPrediction.home_score}-${myPrediction.away_score}` : "";
+  useEffect(() => {
+    if (myPrediction) {
+      setH(String(myPrediction.home_score));
+      setA(String(myPrediction.away_score));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [predKey]);
 
   const finished = match.home_score != null && match.away_score != null;
   const points = finished && myPrediction
