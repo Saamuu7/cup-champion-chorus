@@ -38,6 +38,16 @@ function HomeTab() {
   const { user } = useAuth();
   const { porraId } = useActivePorra();
   const [selected, setSelected] = useState<Match | null>(null);
+  const qc = useQueryClient();
+
+  // Auto-generate knockout matches as teams qualify
+  useEffect(() => {
+    if (!user) return;
+    (supabase.rpc as unknown as (fn: string) => Promise<{ error: unknown }>)("generate_knockouts")
+      .then(({ error }) => {
+        if (!error) qc.invalidateQueries({ queryKey: ["matches"] });
+      });
+  }, [user, qc]);
 
   const { data: porra } = useQuery({
     queryKey: ["porra", porraId],
