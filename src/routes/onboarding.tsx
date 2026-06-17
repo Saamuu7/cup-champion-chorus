@@ -107,91 +107,107 @@ function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col p-6 text-white">
-      <header className="flex items-center justify-between mb-8">
-        {mode !== "choose" ? (
-          <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-white/80">
-            <ArrowLeft className="size-4" /> Atrás
+    <div className="relative min-h-screen flex flex-col p-4 sm:p-6 text-white select-none">
+      {/* Background & Overlay Wrapper */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat overflow-hidden pointer-events-none"
+        style={{ backgroundImage: "url('/world-cup-bg.png')" }}
+      >
+        {/* Premium dark gradient overlay with backdrop blur */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90 backdrop-blur-md" />
+        
+        {/* Decorative soccer stadium light spots */}
+        <div className="absolute top-[-10%] left-[-10%] size-96 rounded-full bg-[#befc30]/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] size-96 rounded-full bg-[#befc30]/5 blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 flex flex-col flex-1">
+        <header className="flex items-center justify-between mb-8">
+          {mode !== "choose" ? (
+            <button onClick={() => setMode("choose")} className="flex items-center gap-1 text-white/80">
+              <ArrowLeft className="size-4" /> Atrás
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+            <img src="/laporra-logo.png" alt="Logo" className="size-6 object-contain rounded-md" />
+            <span className="font-semibold">LaPorra</span>
+          </div>
+          )}
+          <button onClick={signOut} className="text-white/70 text-sm flex items-center gap-1">
+            <LogOut className="size-4" /> Salir
           </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Trophy className="size-6 text-gold" />
-            <span className="font-semibold">Mundialero</span>
-          </div>
-        )}
-        <button onClick={signOut} className="text-white/70 text-sm flex items-center gap-1">
-          <LogOut className="size-4" /> Salir
-        </button>
-      </header>
+        </header>
 
-      <div className="flex-1 flex flex-col justify-center max-w-sm w-full mx-auto">
-        {mode === "choose" && (
-          <div className="space-y-6">
-            <div className="text-center mb-2">
-              <h1 className="text-3xl font-bold">Bienvenido</h1>
-              <p className="text-white/80 mt-2">Crea tu porra o únete a una con un código</p>
+        <div className="flex-1 flex flex-col justify-center max-w-sm w-full mx-auto">
+          {mode === "choose" && (
+            <div className="space-y-6">
+              <div className="text-center mb-2">
+                <h1 className="text-3xl font-bold">Bienvenido</h1>
+                <p className="text-white/80 mt-2">Crea tu porra o únete a una con un código</p>
+              </div>
+              <button
+                onClick={() => setMode("create")}
+                className="w-full bg-card text-card-foreground rounded-2xl p-5 shadow-elegant flex items-center gap-4 hover:scale-[1.02] transition-transform text-left"
+              >
+                <div className="size-12 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground">
+                  <Plus className="size-6" />
+                </div>
+                <div>
+                  <div className="font-semibold">Crear porra</div>
+                  <div className="text-sm text-muted-foreground">Genera un código e invita</div>
+                </div>
+              </button>
+              <button
+                onClick={() => setMode("join")}
+                className="w-full bg-card text-card-foreground rounded-2xl p-5 shadow-elegant flex items-center gap-4 hover:scale-[1.02] transition-transform text-left"
+              >
+                <div className="size-12 rounded-xl bg-gold flex items-center justify-center text-gold-foreground">
+                  <UserPlus className="size-6" />
+                </div>
+                <div>
+                  <div className="font-semibold">Unirse a porra</div>
+                  <div className="text-sm text-muted-foreground">Introduce el código que te han pasado</div>
+                </div>
+              </button>
             </div>
-            <button
-              onClick={() => setMode("create")}
-              className="w-full bg-card text-card-foreground rounded-2xl p-5 shadow-elegant flex items-center gap-4 hover:scale-[1.02] transition-transform text-left"
-            >
-              <div className="size-12 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground">
-                <Plus className="size-6" />
-              </div>
-              <div>
-                <div className="font-semibold">Crear porra</div>
-                <div className="text-sm text-muted-foreground">Genera un código e invita</div>
-              </div>
-            </button>
-            <button
-              onClick={() => setMode("join")}
-              className="w-full bg-card text-card-foreground rounded-2xl p-5 shadow-elegant flex items-center gap-4 hover:scale-[1.02] transition-transform text-left"
-            >
-              <div className="size-12 rounded-xl bg-gold flex items-center justify-center text-gold-foreground">
-                <UserPlus className="size-6" />
-              </div>
-              <div>
-                <div className="font-semibold">Unirse a porra</div>
-                <div className="text-sm text-muted-foreground">Introduce el código que te han pasado</div>
-              </div>
-            </button>
-          </div>
-        )}
+          )}
 
-        {mode === "create" && (
-          <form onSubmit={handleCreate} className="bg-card text-card-foreground rounded-2xl p-6 shadow-elegant space-y-4">
-            <h2 className="text-xl font-semibold">Crear porra</h2>
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Nombre de la porra</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Mundial con los amigos" required maxLength={50} />
-            </div>
-            <Button type="submit" disabled={busy || !name.trim()} className="w-full bg-gradient-primary text-primary-foreground">
-              {busy ? "..." : "Crear"}
-            </Button>
-          </form>
-        )}
+          {mode === "create" && (
+            <form onSubmit={handleCreate} className="bg-card text-card-foreground rounded-2xl p-6 shadow-elegant space-y-4">
+              <h2 className="text-xl font-semibold">Crear porra</h2>
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Nombre de la porra</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Mundial con los amigos" required maxLength={50} />
+              </div>
+              <Button type="submit" disabled={busy || !name.trim()} className="w-full bg-gradient-primary text-primary-foreground">
+                {busy ? "..." : "Crear"}
+              </Button>
+            </form>
+          )}
 
-        {mode === "join" && (
-          <form onSubmit={handleJoin} className="bg-card text-card-foreground rounded-2xl p-6 shadow-elegant space-y-4">
-            <h2 className="text-xl font-semibold">Unirse a porra</h2>
-            <div className="space-y-1.5">
-              <Label htmlFor="code">Código</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="ABC123"
-                required
-                maxLength={6}
-                className="text-center text-2xl tracking-[0.4em] font-bold uppercase"
-              />
-            </div>
-            <Button type="submit" disabled={busy || code.length < 4} className="w-full bg-gradient-primary text-primary-foreground">
-              {busy ? "..." : "Unirse"}
-            </Button>
-          </form>
-        )}
+          {mode === "join" && (
+            <form onSubmit={handleJoin} className="bg-card text-card-foreground rounded-2xl p-6 shadow-elegant space-y-4">
+              <h2 className="text-xl font-semibold">Unirse a porra</h2>
+              <div className="space-y-1.5">
+                <Label htmlFor="code">Código</Label>
+                <Input
+                  id="code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="ABC123"
+                  required
+                  maxLength={6}
+                  className="text-center text-2xl tracking-[0.4em] font-bold uppercase"
+                />
+              </div>
+              <Button type="submit" disabled={busy || code.length < 4} className="w-full bg-gradient-primary text-primary-foreground">
+                {busy ? "..." : "Unirse"}
+              </Button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

@@ -2,7 +2,7 @@ export type Lang = "es" | "en";
 
 export const translations = {
   es: {
-    appName: "Mundialero",
+    appName: "LaPorra",
     tagline: "Porras del Mundial con amigos",
     home: "Inicio",
     ranking: "Ranking",
@@ -55,7 +55,7 @@ export const translations = {
     others: "Otros",
   },
   en: {
-    appName: "Mundialero",
+    appName: "LaPorra",
     tagline: "World Cup pools with friends",
     home: "Home",
     ranking: "Ranking",

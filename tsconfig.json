@@ -22,6 +22,7 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "resolveJsonModule": true
   }
 }

@@ -12,13 +12,40 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       matches: {
         Row: {
+          api_id: string | null
           away_flag: string
           away_score: number | null
           away_team: string
+          category: string | null
           created_at: string
           group_name: string | null
           home_flag: string
@@ -29,9 +56,11 @@ export type Database = {
           stage: string
         }
         Insert: {
+          api_id?: string | null
           away_flag: string
           away_score?: number | null
           away_team: string
+          category?: string | null
           created_at?: string
           group_name?: string | null
           home_flag: string
@@ -42,9 +71,11 @@ export type Database = {
           stage?: string
         }
         Update: {
+          api_id?: string | null
           away_flag?: string
           away_score?: number | null
           away_team?: string
+          category?: string | null
           created_at?: string
           group_name?: string | null
           home_flag?: string
@@ -110,6 +141,7 @@ export type Database = {
         Row: {
           away_score: number
           created_at: string
+          has_star: boolean
           home_score: number
           id: string
           match_id: string
@@ -120,6 +152,7 @@ export type Database = {
         Insert: {
           away_score: number
           created_at?: string
+          has_star?: boolean
           home_score: number
           id?: string
           match_id: string
@@ -130,6 +163,7 @@ export type Database = {
         Update: {
           away_score?: number
           created_at?: string
+          has_star?: boolean
           home_score?: number
           id?: string
           match_id?: string
@@ -331,7 +365,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
