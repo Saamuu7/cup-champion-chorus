@@ -132,8 +132,8 @@ function SettingsTab() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error("La imagen es demasiado grande. El límite es de 3MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("La imagen es demasiado grande. El límite es de 20MB.");
       return;
     }
 
@@ -212,7 +212,7 @@ function SettingsTab() {
             </div>
             <div className="flex-1 space-y-1 text-center sm:text-left w-full">
               <h4 className="text-sm font-bold text-white">Foto de perfil</h4>
-              <p className="text-xs text-neutral-400">Sube una foto desde tu galería (Mínimo recomendado 200x200px, máx. 3MB)</p>
+              <p className="text-xs text-neutral-400">Sube una foto desde tu galería (Mínimo recomendado 200x200px, máx. 20MB)</p>
               <div className="pt-1">
                 <input
                   type="file"

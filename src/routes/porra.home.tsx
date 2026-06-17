@@ -326,24 +326,13 @@ function PorraHeader({ name, code }: { name?: string; code?: string }) {
   const [copied, setCopied] = useState(false);
   const share = async () => {
     if (!code) return;
-    const shareText = `¡Únete a mi porra del Mundial 2026 en LaPorra! Usa el código de invitación: ${code}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Únete a mi Porra',
-          text: shareText,
-          url: window.location.origin
-        });
-      } catch (err) {
-        // Fallback to clipboard if user cancels share sheet
-        navigator.clipboard.writeText(code);
-        toast.success(`¡Código copiado: ${code}!`);
-      }
-    } else {
-      navigator.clipboard.writeText(code);
+    try {
+      await navigator.clipboard.writeText(code);
       setCopied(true);
       toast.success(`¡Código copiado: ${code}!`);
       setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      toast.error("Error al copiar el código");
     }
   };
   return (
@@ -360,12 +349,12 @@ function PorraHeader({ name, code }: { name?: string; code?: string }) {
           <button
             onClick={share}
             className="absolute -top-4 right-2 bg-white/10 hover:bg-white/20 transition-all rounded-full p-2 border border-white/10 flex items-center justify-center shadow-lg active:scale-95"
-            title="Compartir código de invitación"
+            title="Copiar código de liga"
           >
             {copied ? (
               <Check className="size-4 text-lime-400" />
             ) : (
-              <Share2 className="size-4 text-white" />
+              <Copy className="size-4 text-white" />
             )}
           </button>
         )}
