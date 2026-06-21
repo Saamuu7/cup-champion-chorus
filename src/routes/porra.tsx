@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { Trophy, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useActivePorra } from "@/hooks/useActivePorra";
+import { useQueryClient } from "@tanstack/react-query";
+import { syncMatchesFn } from "@/lib/api/sync.functions";
 
 export const Route = createFileRoute("/porra")({
   component: PorraLayout,
@@ -34,12 +36,39 @@ function PorraLayout() {
   const { porraId } = useActivePorra();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (loading) return;
     if (!user) navigate({ to: "/" });
     else if (!porraId) navigate({ to: "/onboarding" });
   }, [user, loading, porraId, navigate]);
+
+  // Periodic synchronization of match results from the external API
+  useEffect(() => {
+    if (!user || !porraId) return;
+
+    const runSync = () => {
+      syncMatchesFn()
+        .then((res) => {
+          if (res && res.success) {
+            console.log("[Sync] Match sync status:", res.message);
+            if (res.updatedCount > 0) {
+              qc.invalidateQueries({ queryKey: ["matches"] });
+              qc.invalidateQueries({ queryKey: ["predictions", porraId] });
+              qc.invalidateQueries({ queryKey: ["ranking", porraId] });
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("[Sync] Error calling syncMatchesFn:", err);
+        });
+    };
+
+    runSync();
+    const interval = setInterval(runSync, 60 * 1000); // check every minute
+    return () => clearInterval(interval);
+  }, [user, porraId, qc]);
 
   if (!user || !porraId) {
     return (

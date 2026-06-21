@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { calcPoints } from "@/lib/scoring";
-import { syncMatchesFn } from "@/lib/api/sync.functions";
 
 function getFlagUrl(emoji: string, teamName?: string) {
   if (teamName) {
@@ -49,6 +48,7 @@ export const Route = createFileRoute("/porra/home")({
 
 interface Match {
   id: string;
+  api_id?: string | null;
   match_date: string;
   home_team: string;
   away_team: string;
@@ -74,25 +74,6 @@ function HomeTab() {
   const { porraId } = useActivePorra();
   const [selected, setSelected] = useState<Match | null>(null);
   const qc = useQueryClient();
-
-  // Auto-sync matches with external API and auto-generate knockouts
-  useEffect(() => {
-    if (!user) return;
-    syncMatchesFn()
-      .then((res) => {
-        if (res && res.success) {
-          console.log("[Sync] Match sync status:", res.message);
-          if (res.updatedCount > 0) {
-            qc.invalidateQueries({ queryKey: ["matches"] });
-            qc.invalidateQueries({ queryKey: ["predictions", porraId] });
-            qc.invalidateQueries({ queryKey: ["ranking", porraId] });
-          }
-        }
-      })
-      .catch((err) => {
-        console.error("[Sync] Error calling syncMatchesFn:", err);
-      });
-  }, [user, qc, porraId]);
 
   const { data: porra } = useQuery({
     queryKey: ["porra", porraId],
@@ -168,7 +149,14 @@ function HomeTab() {
   // Categorize matches by J1/J2/J3 or knockout stage
   const matchesWithCategory = (() => {
     if (!matches) return [];
-    const sortedMatches = [...matches].sort((a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
+    const sortedMatches = [...matches].sort((a, b) => {
+      const timeA = new Date(a.match_date).getTime();
+      const timeB = new Date(b.match_date).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      const idA = a.api_id ? parseInt(a.api_id, 10) : 0;
+      const idB = b.api_id ? parseInt(b.api_id, 10) : 0;
+      return idA - idB;
+    });
     const groupMatchesMap = new Map<string, Match[]>();
     sortedMatches.forEach(m => {
       if (m.stage === 'group' && m.group_name) {
@@ -755,6 +743,181 @@ function MatchCard({
   );
 }
 
+function getRealProbabilities(home: string, away: string) {
+  const norm = (name: string) => name ? name.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+
+  const eloMap: Record<string, number> = {
+    // Argentina
+    "argentina": 2150,
+    // España / Spain
+    "espana": 2130,
+    "spain": 2130,
+    // Francia / France
+    "francia": 2110,
+    "france": 2110,
+    // Inglaterra / England
+    "inglaterra": 2040,
+    "england": 2040,
+    // Brasil / Brazil
+    "brasil": 2020,
+    "brazil": 2020,
+    // Portugal
+    "portugal": 2010,
+    // Países Bajos / Netherlands
+    "paises bajos": 1990,
+    "netherlands": 1990,
+    // Bélgica / Belgium
+    "belgica": 1960,
+    "belgium": 1960,
+    // Alemania / Germany
+    "alemania": 1950,
+    "germany": 1950,
+    // Uruguay
+    "uruguay": 1930,
+    // Colombia
+    "colombia": 1920,
+    // Marruecos / Morocco
+    "marruecos": 1910,
+    "morocco": 1910,
+    // Croacia / Croatia
+    "croacia": 1900,
+    "croatia": 1900,
+    // Italia / Italy
+    "italia": 1890,
+    "italy": 1890,
+    // Japón / Japan
+    "japon": 1880,
+    "japan": 1880,
+    // Estados Unidos / USA
+    "estados unidos": 1820,
+    "united states": 1820,
+    "usa": 1820,
+    // México / Mexico
+    "mexico": 1810,
+    "mexico": 1810,
+    // Suiza / Switzerland
+    "suiza": 1800,
+    "switzerland": 1800,
+    // Dinamarca / Denmark
+    "dinamarca": 1790,
+    "denmark": 1790,
+    // Austria
+    "austria": 1780,
+    // Senegal
+    "senegal": 1770,
+    // Irán / Iran
+    "iran": 1760,
+    // Ecuador
+    "ecuador": 1760,
+    // Corea del Sur / South Korea
+    "corea del sur": 1750,
+    "south korea": 1750,
+    "korea republic": 1750,
+    // Australia
+    "australia": 1740,
+    // Ucrania / Ukraine
+    "ucrania": 1730,
+    "ukraine": 1730,
+    // Suecia / Sweden
+    "suecia": 1730,
+    "sweden": 1730,
+    // Turquía / Turkey
+    "turquia": 1720,
+    "turkey": 1720,
+    // Paraguay
+    "paraguay": 1710,
+    // Argelia / Algeria
+    "argelia": 1700,
+    "algeria": 1700,
+    // Canadá / Canada
+    "canada": 1690,
+    // Túnez / Tunisia
+    "tunez": 1680,
+    "tunisia": 1680,
+    // Egipto / Egypt
+    "egipto": 1670,
+    "egypt": 1670,
+    // Noruega / Norway
+    "noruega": 1660,
+    "norway": 1660,
+    // Polonia / Poland
+    "polonia": 1650,
+    "poland": 1650,
+    // Escocia / Scotland
+    "escocia": 1640,
+    "scotland": 1640,
+    // Bosnia y Herzegovina / Bosnia-Herzegovina
+    "bosnia y herzegovina": 1630,
+    "bosnia-herzegovina": 1630,
+    "bosnia and herzegovina": 1630,
+    // Chile
+    "chile": 1620,
+    // Costa de Marfil / Ivory Coast
+    "costa de marfil": 1610,
+    "ivory coast": 1610,
+    "cote d'ivoire": 1610,
+    // RD del Congo / DR Congo
+    "rd del congo": 1600,
+    "dr congo": 1600,
+    "congo dr": 1600,
+    "democratic republic of the congo": 1600,
+    // Arabia Saudita / Saudi Arabia
+    "arabia saudita": 1590,
+    "saudi arabia": 1590,
+    // Catar / Qatar
+    "catar": 1580,
+    "qatar": 1580,
+    // Ghana
+    "ghana": 1570,
+    // Irak / Iraq
+    "irak": 1560,
+    "iraq": 1560,
+    // Uzbekistán / Uzbekistan
+    "uzbekistan": 1550,
+    "uzbekistan": 1550,
+    // Cabo Verde / Cape Verde
+    "cabo verde": 1540,
+    "cape verde": 1540,
+    // Panamá / Panama
+    "panama": 1530,
+    // Sudáfrica / South Africa
+    "sudafrica": 1520,
+    "south africa": 1520,
+    // Nueva Zelanda / New Zealand
+    "nueva zelanda": 1480,
+    "new zealand": 1480,
+    // Curazao / Curacao
+    "curazao": 1450,
+    "curacao": 1450,
+    // Haití / Haiti
+    "haiti": 1430,
+    // Jordania / Jordan
+    "jordania": 1420,
+    "jordan": 1420
+  };
+
+  const hNorm = norm(home);
+  const aNorm = norm(away);
+
+  const eloHome = eloMap[hNorm] || 1500;
+  const eloAway = eloMap[aNorm] || 1500;
+
+  const dr = (eloAway - eloHome) / 400;
+  const expectedHome = 1 / (1 + Math.pow(10, dr));
+
+  // draw probability peaks at 28% for equal strength
+  const drawProb = 0.28 * Math.exp(-Math.pow(dr, 2) / 2);
+  const winProb = (1 - drawProb) * expectedHome;
+  const loseProb = 1 - drawProb - winProb;
+
+  const homePct = Math.round(winProb * 100);
+  const drawPct = Math.round(drawProb * 100);
+  const awayPct = 100 - homePct - drawPct;
+
+  return { homePct, drawPct, awayPct };
+}
+
 function MatchDetailDialog({
   match,
   onClose,
@@ -789,20 +952,10 @@ function MatchDetailDialog({
   if (!match) return null;
 
   const matchPreds = predictions.filter((p) => p.match_id === match.id);
-
-  // Calculate prediction distribution
-  let homeWins = 0;
-  let draws = 0;
-  let awayWins = 0;
-  matchPreds.forEach((p) => {
-    if (p.home_score > p.away_score) homeWins++;
-    else if (p.home_score === p.away_score) draws++;
-    else awayWins++;
-  });
   const totalPreds = matchPreds.length;
-  const homePct = totalPreds ? Math.round((homeWins / totalPreds) * 100) : 0;
-  const drawPct = totalPreds ? Math.round((draws / totalPreds) * 100) : 0;
-  const awayPct = totalPreds ? 100 - homePct - drawPct : 0; // ensure exactly 100%
+  
+  // Calculate real probabilities based on ELO ratings
+  const realProbs = getRealProbabilities(match.home_team, match.away_team);
 
   return (
     <Dialog open={!!match} onOpenChange={(o) => !o && onClose()}>
@@ -840,30 +993,30 @@ function MatchDetailDialog({
             </div>
           </div>
         )}
-        {totalPreds > 0 && (
-          <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-xl p-3.5 space-y-2">
-            <div className="flex justify-between text-[10px] text-neutral-400 font-extrabold uppercase tracking-widest">
-              <span>Tendencia del grupo</span>
-              <span>{totalPreds} pronósticos</span>
-            </div>
-            <div className="h-2.5 w-full rounded-full overflow-hidden flex bg-neutral-800">
-              {homePct > 0 && (
-                <div style={{ width: `${homePct}%` }} className="bg-[#befc30] h-full" title={`Local: ${homePct}%`} />
-              )}
-              {drawPct > 0 && (
-                <div style={{ width: `${drawPct}%` }} className="bg-neutral-500 h-full" title={`Empate: ${drawPct}%`} />
-              )}
-              {awayPct > 0 && (
-                <div style={{ width: `${awayPct}%` }} className="bg-sky-500 h-full" title={`Visitante: ${awayPct}%`} />
-              )}
-            </div>
-            <div className="flex justify-between text-[11px] font-bold text-white pt-1">
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#befc30]" /> Local: {homePct}%</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-neutral-500" /> Empate: {drawPct}%</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-500" /> Vis: {awayPct}%</span>
-            </div>
+        
+        {/* Real match probabilities based on team strength (Elo) */}
+        <div className="bg-neutral-900/40 border border-neutral-800/80 rounded-xl p-3.5 space-y-2">
+          <div className="flex justify-between text-[10px] text-neutral-400 font-extrabold uppercase tracking-widest">
+            <span>Probabilidad de victoria</span>
+            <span>Predicción ELO</span>
           </div>
-        )}
+          <div className="h-2.5 w-full rounded-full overflow-hidden flex bg-neutral-800">
+            {realProbs.homePct > 0 && (
+              <div style={{ width: `${realProbs.homePct}%` }} className="bg-[#befc30] h-full" title={`Local: ${realProbs.homePct}%`} />
+            )}
+            {realProbs.drawPct > 0 && (
+              <div style={{ width: `${realProbs.drawPct}%` }} className="bg-neutral-500 h-full" title={`Empate: ${realProbs.drawPct}%`} />
+            )}
+            {realProbs.awayPct > 0 && (
+              <div style={{ width: `${realProbs.awayPct}%` }} className="bg-sky-500 h-full" title={`Visitante: ${realProbs.awayPct}%`} />
+            )}
+          </div>
+          <div className="flex justify-between text-[11px] font-bold text-white pt-1">
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#befc30]" /> Local: {realProbs.homePct}%</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-neutral-500" /> Empate: {realProbs.drawPct}%</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-500" /> Vis: {realProbs.awayPct}%</span>
+          </div>
+        </div>
 
         <div>
           <div className="text-sm font-semibold mb-2">Predicciones de la porra</div>

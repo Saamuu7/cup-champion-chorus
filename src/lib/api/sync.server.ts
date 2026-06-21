@@ -60,7 +60,10 @@ const ENGLISH_TO_SPANISH_TEAMS: Record<string, string> = {
   "Panama": "Panamá",
   "England": "Inglaterra",
   "Croatia": "Croacia",
-  "Ghana": "Ghana"
+  "Ghana": "Ghana",
+  "Switzerland": "Suiza",
+  "Turkey": "Turquía",
+  "Democratic Republic of the Congo": "RD del Congo"
 };
 
 function translateTeam(apiName: string): string {
@@ -504,10 +507,32 @@ export async function generateKnockoutMatchesTS() {
 
 export async function syncMatches(force = false): Promise<{ success: boolean; message: string; updatedCount: number }> {
   const now = Date.now();
-  if (!force && now - lastSyncTime < THROTTLE_MS) {
+  
+  // Dynamic throttle: if there is an active/recent match without a score, reduce throttle to 1 minute
+  let hasActiveMatch = false;
+  try {
+    const { data: dbMatches } = await supabaseAdmin
+      .from("matches")
+      .select("match_date, home_score, away_score");
+    
+    if (dbMatches) {
+      hasActiveMatch = dbMatches.some(m => {
+        const matchTime = new Date(m.match_date).getTime();
+        // Started in the last 36 hours, or starting in the next 15 minutes, and has no score yet
+        const isRecentOrUpcoming = matchTime < now + 15 * 60 * 1000 && matchTime > now - 36 * 60 * 60 * 1000;
+        return isRecentOrUpcoming && m.home_score === null;
+      });
+    }
+  } catch (e) {
+    console.error("[Sync] Error checking for active matches for throttle bypass:", e);
+  }
+
+  const currentThrottle = hasActiveMatch ? 1 * 60 * 1000 : THROTTLE_MS;
+
+  if (!force && now - lastSyncTime < currentThrottle) {
     return {
       success: true,
-      message: "Sync en caché (throttle activo)",
+      message: `Sync en caché (throttle activo: ${hasActiveMatch ? "1 min" : "10 min"})`,
       updatedCount: 0
     };
   }
