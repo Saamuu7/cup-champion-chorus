@@ -391,6 +391,8 @@ function MatchCard({
   const [a, setA] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const realProbs = getRealProbabilities(match.home_team, match.away_team);
+
   // Sync with loaded prediction
   const predKey = myPrediction ? `${myPrediction.home_score}-${myPrediction.away_score}` : "";
   useEffect(() => {
@@ -730,6 +732,26 @@ function MatchCard({
           <span className="text-white text-xs font-bold tracking-wider mt-1 uppercase text-center w-full truncate">
             {match.away_team}
           </span>
+        </div>
+      </div>
+
+      {/* Probability Bar */}
+      <div className="mt-4 px-1 space-y-1">
+        <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-neutral-800">
+          {realProbs.homePct > 0 && (
+            <div style={{ width: `${realProbs.homePct}%` }} className="bg-[#befc30] h-full" title={`Local: ${realProbs.homePct}%`} />
+          )}
+          {realProbs.drawPct > 0 && (
+            <div style={{ width: `${realProbs.drawPct}%` }} className="bg-neutral-500 h-full" title={`Empate: ${realProbs.drawPct}%`} />
+          )}
+          {realProbs.awayPct > 0 && (
+            <div style={{ width: `${realProbs.awayPct}%` }} className="bg-sky-500 h-full" title={`Visitante: ${realProbs.awayPct}%`} />
+          )}
+        </div>
+        <div className="flex justify-between text-[9px] font-extrabold text-neutral-500 uppercase tracking-wider">
+          <span>{match.home_team}: {realProbs.homePct}%</span>
+          <span>Empate: {realProbs.drawPct}%</span>
+          <span>{match.away_team}: {realProbs.awayPct}%</span>
         </div>
       </div>
 
