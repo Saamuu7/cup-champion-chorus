@@ -650,7 +650,23 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
       const isFinished = apiGame.finished === "TRUE";
 
       if (!isFinished) {
-        // AUTOCORRECCIÓN: Si el partido no ha terminado, pero tiene marcador local, restaurar a NULL
+        // If the match is not finished but has active scores, store the live score in the category column
+        const liveHome = parseInt(apiGame.home_score || "", 10);
+        const liveAway = parseInt(apiGame.away_score || "", 10);
+        const liveScoreStr = (!isNaN(liveHome) && !isNaN(liveAway)) ? `LIVE:${liveHome}-${liveAway}` : null;
+
+        if (matchingDbMatch.category !== liveScoreStr) {
+          console.log(`[Sync Matches] Actualizando marcador EN VIVO para ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team} -> ${liveScoreStr}`);
+          await supabaseAdmin
+            .from("matches")
+            .update({ category: liveScoreStr })
+            .eq("id", matchingDbMatch.id);
+          
+          matchingDbMatch.category = liveScoreStr;
+          updatedCount++;
+        }
+
+        // AUTOCORRECCIÓN: Si el partido no ha terminado, pero tiene marcador local final, restaurar a NULL
         if (matchingDbMatch.home_score !== null || matchingDbMatch.away_score !== null) {
           console.log(`[Sync Matches] Restaurando a NULL (no terminado): ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team}`);
           const { error: resetError } = await supabaseAdmin
@@ -680,7 +696,8 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
 
       const needsUpdate = 
         matchingDbMatch.home_score !== homeScoreNum || 
-        matchingDbMatch.away_score !== awayScoreNum;
+        matchingDbMatch.away_score !== awayScoreNum ||
+        matchingDbMatch.category !== null; // Clear live category when finished
 
       if (needsUpdate) {
         console.log(`[Sync Matches] Actualizando finalizado ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team} -> ${homeScoreNum}-${awayScoreNum}`);
@@ -688,13 +705,17 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
           .from("matches")
           .update({
             home_score: homeScoreNum,
-            away_score: awayScoreNum
+            away_score: awayScoreNum,
+            category: null // Clear live category
           })
           .eq("id", matchingDbMatch.id);
 
         if (updateError) {
           console.error(`Error al actualizar partido ${matchingDbMatch.id}:`, updateError);
         } else {
+          matchingDbMatch.home_score = homeScoreNum;
+          matchingDbMatch.away_score = awayScoreNum;
+          matchingDbMatch.category = null;
           updatedCount++;
         }
       }

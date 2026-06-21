@@ -59,6 +59,7 @@ interface Match {
   away_score: number | null;
   category?: string | null;
   stage: string;
+  liveScore?: string | null;
 }
 
 interface Prediction {
@@ -184,7 +185,8 @@ function HomeTab() {
         else if (m.stage === 'final') category = 'Final';
         else category = 'Final';
       }
-      return { ...m, category };
+      const liveScore = m.category && m.category.startsWith("LIVE:") ? m.category.replace("LIVE:", "") : null;
+      return { ...m, category, liveScore };
     });
   })();
 
@@ -406,6 +408,7 @@ function MatchCard({
   }, [predKey]);
 
   const finished = match.home_score != null && match.away_score != null;
+  const isLive = !finished && !!match.liveScore;
   const points = finished && myPrediction
     ? calcPoints(myPrediction.home_score, myPrediction.away_score, match.home_score, match.away_score) * (myPrediction.has_star ? 2 : 1)
     : null;
@@ -654,6 +657,28 @@ function MatchCard({
                 </div>
               ) : (
                 <span className="text-neutral-500 text-[10px] mt-2 font-bold uppercase tracking-wider">Sin porra</span>
+              )}
+            </div>
+          ) : isLive ? (
+            <div className="flex flex-col items-center">
+              <span className="inline-flex items-center gap-1 bg-red-950/60 border border-red-800/40 text-red-400 text-[8px] font-extrabold px-1.5 py-0.5 rounded-full shadow-[0_1px_5px_rgba(239,68,68,0.1)] mb-1 animate-pulse">
+                <span className="size-1 rounded-full bg-red-500 animate-pulse" />
+                EN VIVO
+              </span>
+              <span className="text-[#befc30] text-3xl font-black tracking-wider leading-none">
+                {match.liveScore}
+              </span>
+              {myPrediction ? (
+                <div className="flex flex-col items-center mt-2.5 space-y-0.5">
+                  <div className="text-[9px] text-neutral-400 font-extrabold uppercase tracking-widest">
+                    Tu porra
+                  </div>
+                  <div className="text-xs font-black text-white tracking-wider">
+                    {myPrediction.home_score}–{myPrediction.away_score}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-neutral-500 text-[9px] mt-2 font-bold uppercase tracking-wider">Sin porra</span>
               )}
             </div>
           ) : isLocked ? (
