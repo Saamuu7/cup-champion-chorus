@@ -154,8 +154,8 @@ function HomeTab() {
       const timeA = new Date(a.match_date).getTime();
       const timeB = new Date(b.match_date).getTime();
       if (timeA !== timeB) return timeA - timeB;
-      const idA = a.api_id ? parseInt(a.api_id, 10) : 0;
-      const idB = b.api_id ? parseInt(b.api_id, 10) : 0;
+      const idA = a.api_id ? parseInt(a.api_id.split('|')[0], 10) : 0;
+      const idB = b.api_id ? parseInt(b.api_id.split('|')[0], 10) : 0;
       return idA - idB;
     });
     const groupMatchesMap = new Map<string, Match[]>();
@@ -185,7 +185,7 @@ function HomeTab() {
         else if (m.stage === 'final') category = 'Final';
         else category = 'Final';
       }
-      const liveScore = m.category && m.category.startsWith("LIVE:") ? m.category.replace("LIVE:", "") : null;
+      const liveScore = m.api_id && m.api_id.includes("|LIVE:") ? m.api_id.split("|")[1].replace("LIVE:", "") : null;
       return { ...m, category, liveScore };
     });
   })();
@@ -297,7 +297,7 @@ function HomeTab() {
               onOpen={() => setSelected(m)}
               members={members ?? []}
               allPredictions={predictions ?? []}
-              matchesList={matches ?? []}
+              matchesList={matchesWithCategory}
             />
           ))
         )}

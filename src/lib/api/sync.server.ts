@@ -320,7 +320,7 @@ export async function generateKnockoutMatchesTS() {
   const flagMap = buildFlagMap(dbMatches);
   const matchesMap = new Map<string, any>();
   dbMatches.forEach(m => {
-    if (m.api_id) matchesMap.set(m.api_id, m);
+    if (m.api_id) matchesMap.set(m.api_id.split('|')[0], m);
   });
   
   const updates: any[] = [];
@@ -570,6 +570,32 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
     if (refreshError) throw refreshError;
     if (!refreshedDbMatches) throw new Error("Error al refrescar partidos locales");
 
+    // Restablecer categorías originales en la base de datos para corregir problemas de triggers (como el de has_star)
+    // Ya no usamos la columna "category" para guardar el marcador en vivo.
+    for (const dbM of refreshedDbMatches) {
+      if (!dbM.api_id) continue;
+      const apiIdNum = parseInt(dbM.api_id.split('|')[0], 10);
+      let targetCat: string | null = null;
+      if (apiIdNum >= 1 && apiIdNum <= 79) {
+        if (apiIdNum === 33 || (apiIdNum >= 1 && apiIdNum <= 30)) {
+          targetCat = "J1";
+        } else if (apiIdNum === 31 || apiIdNum === 32 || (apiIdNum >= 34 && apiIdNum <= 55)) {
+          targetCat = "J2";
+        } else if (apiIdNum >= 56 && apiIdNum <= 79) {
+          targetCat = "J3";
+        }
+      }
+      
+      if (dbM.category !== targetCat) {
+        console.log(`[Sync Matches] Restaurando categoría de partido ${dbM.id} (api_id ${dbM.api_id}): ${dbM.category} -> ${targetCat}`);
+        await supabaseAdmin
+          .from("matches")
+          .update({ category: targetCat })
+          .eq("id", dbM.id);
+        dbM.category = targetCat;
+      }
+    }
+
     const flagMap = buildFlagMap(refreshedDbMatches);
     let updatedCount = 0;
 
@@ -577,8 +603,8 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
       const apiHomeSpanish = translateTeam(apiGame.home_team_name_en || "");
       const apiAwaySpanish = translateTeam(apiGame.away_team_name_en || "");
 
-      // Buscar partido por api_id, con fallback a nombres
-      let matchingDbMatch = refreshedDbMatches.find(dbM => dbM.api_id === apiGame.id);
+      // Buscar partido por api_id (ignorando sufijos), con fallback a nombres
+      let matchingDbMatch = refreshedDbMatches.find(dbM => dbM.api_id?.split('|')[0] === apiGame.id);
       if (!matchingDbMatch) {
         matchingDbMatch = refreshedDbMatches.find(dbM => {
           const homeMatch = dbM.home_team.toLowerCase() === apiHomeSpanish.toLowerCase();
@@ -650,19 +676,20 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
       const isFinished = apiGame.finished === "TRUE";
 
       if (!isFinished) {
-        // If the match is not finished but has active scores, store the live score in the category column
+        // Guardamos el marcador en vivo como sufijo en la columna api_id (ej. "73|LIVE:0-0")
         const liveHome = parseInt(apiGame.home_score || "", 10);
         const liveAway = parseInt(apiGame.away_score || "", 10);
         const liveScoreStr = (!isNaN(liveHome) && !isNaN(liveAway)) ? `LIVE:${liveHome}-${liveAway}` : null;
+        const newApiId = liveScoreStr ? `${apiGame.id}|${liveScoreStr}` : apiGame.id;
 
-        if (matchingDbMatch.category !== liveScoreStr) {
-          console.log(`[Sync Matches] Actualizando marcador EN VIVO para ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team} -> ${liveScoreStr}`);
+        if (matchingDbMatch.api_id !== newApiId) {
+          console.log(`[Sync Matches] Actualizando api_id con marcador EN VIVO para ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team} -> ${newApiId}`);
           await supabaseAdmin
             .from("matches")
-            .update({ category: liveScoreStr })
+            .update({ api_id: newApiId })
             .eq("id", matchingDbMatch.id);
           
-          matchingDbMatch.category = liveScoreStr;
+          matchingDbMatch.api_id = newApiId;
           updatedCount++;
         }
 
@@ -694,10 +721,11 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
         continue;
       }
 
+      const currentBaseApiId = matchingDbMatch.api_id?.split('|')[0] || apiGame.id;
       const needsUpdate = 
         matchingDbMatch.home_score !== homeScoreNum || 
         matchingDbMatch.away_score !== awayScoreNum ||
-        matchingDbMatch.category !== null; // Clear live category when finished
+        matchingDbMatch.api_id !== currentBaseApiId; // Clear live score suffix when finished
 
       if (needsUpdate) {
         console.log(`[Sync Matches] Actualizando finalizado ${matchingDbMatch.home_team} vs ${matchingDbMatch.away_team} -> ${homeScoreNum}-${awayScoreNum}`);
@@ -706,7 +734,7 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
           .update({
             home_score: homeScoreNum,
             away_score: awayScoreNum,
-            category: null // Clear live category
+            api_id: currentBaseApiId // Restablecemos api_id limpio (sin sufijo de marcador en vivo)
           })
           .eq("id", matchingDbMatch.id);
 
@@ -715,7 +743,7 @@ export async function syncMatches(force = false): Promise<{ success: boolean; me
         } else {
           matchingDbMatch.home_score = homeScoreNum;
           matchingDbMatch.away_score = awayScoreNum;
-          matchingDbMatch.category = null;
+          matchingDbMatch.api_id = currentBaseApiId;
           updatedCount++;
         }
       }
